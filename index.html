@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Home">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-180.png?v=2">
+<link rel="apple-touch-icon" href="icon-180.png?v=3">
 <title>Home Inventory</title>
 <style>
 :root{
@@ -77,6 +77,7 @@ h1{font-size:22px;margin:0;letter-spacing:-.01em}
 .two .field{margin:0}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .chips button{padding:7px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--line);font-size:14px}
+.chips button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .typeseg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .typeseg button{padding:10px 0;border-radius:12px;background:var(--bg);font-weight:600;font-size:14px;border:2px solid transparent}
 .typeseg button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
@@ -136,6 +137,7 @@ const lsGet = k => { try { return localStorage.getItem(k); } catch(e) { return n
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch(e) {} };
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/1dM1txX6MBDeV--YXS2MX2_hU5LcUOpJMc1DfGn9pkvM/edit";
 const CATS = ["Appliance", "Electronics", "Other"];
+const ROOMS = ["Kitchen", "Living Room", "Bedroom", "Bathroom", "Laundry", "Office", "Garage", "Basement", "Outdoor"];
 
 // Link + key for the Apps Script attached to your Home Inventory sheet (saved on each device in Settings)
 const CFG = { url: lsGet("hi_api") || "", key: lsGet("hi_key") || "" };
@@ -346,6 +348,8 @@ let pending = null;   // photo picked in the add form, uploaded after the item i
 function formSheet(id){
   const it = id ? S.items.find(x => x.id === id) : null, v = k => esc(it ? it[k] : "");
   const rooms = [...new Set(S.items.map(x => String(x.room || "").trim()).filter(Boolean))].sort();
+  // rooms you've already used come first, then common ones, so a room is always one tap away
+  const roomChoices = rooms.concat(ROOMS.filter(r => !rooms.some(x => x.toLowerCase() === r.toLowerCase())));
   const cat = it ? String(it.category || "") : "Appliance";
   const cats = CATS.includes(cat) || !cat ? CATS : CATS.slice(0, 2).concat(cat);
   pending = null;
@@ -353,8 +357,8 @@ function formSheet(id){
     <form id="itemForm" autocomplete="off" data-id="${esc(id || "")}">
       <label class="field"><span>Item</span><input id="fItem" value="${v("item")}" placeholder="Refrigerator" required></label>
       <div class="field"><span>Category</span><div class="typeseg" id="fCat">${cats.map(c => `<button type="button" data-cat="${esc(c)}" class="${c === cat ? "on" : ""}">${esc(c)}</button>`).join("")}</div></div>
-      <label class="field"><span>Room</span><input id="fRoom" value="${v("room")}" placeholder="Kitchen">
-        ${rooms.length ? `<div class="chips">${rooms.map(x => `<button type="button" data-room="${esc(x)}">${esc(x)}</button>`).join("")}</div>` : ""}</label>
+      <div class="field"><label for="fRoom"><span>Room</span></label><input id="fRoom" type="text" value="${v("room")}" placeholder="Type a room or tap one below" autocapitalize="words">
+        <div class="chips">${roomChoices.map(x => `<button type="button" data-room="${esc(x)}">${esc(x)}</button>`).join("")}</div></div>
       <div class="two">
         <label class="field"><span>Brand</span><input id="fBrand" value="${v("brand")}"></label>
         <label class="field"><span>Model</span><input id="fModel" value="${v("model")}" autocapitalize="characters" autocorrect="off" spellcheck="false"></label>
@@ -403,7 +407,7 @@ document.addEventListener("click", async e => {
   if (t.classList.contains("item")) return detailSheet(t.dataset.id);
   if (t.dataset.edit) return formSheet(t.dataset.edit);
   if (t.dataset.cat) { t.parentNode.querySelectorAll("button").forEach(b => b.classList.toggle("on", b === t)); return; }
-  if (t.dataset.room) { $("#fRoom").value = t.dataset.room; return; }
+  if (t.dataset.room) { $("#fRoom").value = t.dataset.room; t.parentNode.querySelectorAll("button").forEach(b => b.classList.toggle("on", b === t)); return; }
   if (t.id === "btnPick") { upTarget = {form: true}; return $("#filePhoto").click(); }
   if (t.dataset.up) { upTarget = {id: t.dataset.id, kind: t.dataset.up}; return $(t.dataset.up === "photo" ? "#filePhoto" : "#fileDoc").click(); }
   if (t.id === "btnRefresh") { t.disabled = true; t.textContent = "Refreshing…"; await load(); closeSheet(); if (!S.err) toast("Up to date"); return; }
@@ -416,6 +420,7 @@ document.addEventListener("click", async e => {
 });
 $("#scrim").addEventListener("click", closeSheet);
 $("#q").addEventListener("input", e => { S.q = e.target.value; render(); });
+document.addEventListener("input", e => { if (e.target.id === "fRoom") document.querySelectorAll("[data-room]").forEach(b => b.classList.toggle("on", b.dataset.room.toLowerCase() === e.target.value.trim().toLowerCase())); });
 
 async function onFile(e){
   const f = e.target.files[0]; e.target.value = ""; const tgt = upTarget; upTarget = null;
