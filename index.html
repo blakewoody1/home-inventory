@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0b0b0c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Home">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png?v=1">
+<title>Home Inventory</title>
+<style>
+:root{
+  --bg:#f3f1ec; --card:#ffffff; --ink:#1d2320; --muted:#6c736f; --line:#e4e1da;
+  --accent:#1f6f50; --accent-ink:#ffffff; --accent-soft:#e2efe8;
+  --warn:#b4432f; --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.05);
+  --r:16px;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#121513;--card:#1c201e;--ink:#eef1ef;--muted:#9aa39e;--line:#2b302d;
+    --accent:#45b886;--accent-ink:#0d1a13;--accent-soft:#1e3329;--warn:#ef8a74;--shadow:none}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+[hidden]{display:none!important}
+.wrap{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 8px) 14px calc(env(safe-area-inset-bottom) + 110px)}
+.toprow{display:flex;align-items:center;justify-content:space-between;padding:6px 2px 10px}
+h1{font-size:22px;margin:0;letter-spacing:-.01em}
+.icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;color:var(--muted)}
+.icon:active{background:var(--line)}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--line)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{padding:12px;text-align:left;display:flex;flex-direction:column;gap:3px;min-width:0}
+.stat small{color:var(--muted);font-size:12px}
+.stat b{font-size:20px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap}
+.stat.on{border-color:var(--accent);background:var(--accent-soft)}
+.stat.alert b{color:var(--warn)}
+.search{width:100%;margin:12px 0 0;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:16px;outline:none;-webkit-appearance:none;appearance:none}
+.search:focus{border-color:var(--accent)}
+.seg{display:flex;background:var(--line);padding:3px;border-radius:12px;margin:12px 0 4px}
+.seg button{flex:1;padding:9px 0;border-radius:10px;font-size:13px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.day{display:flex;justify-content:space-between;align-items:baseline;padding:14px 4px 6px;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.day span{font-weight:600;text-transform:none;letter-spacing:0}
+.group{overflow:hidden}
+.item{display:flex;width:100%;align-items:center;gap:12px;padding:10px 14px;text-align:left;border-top:1px solid var(--line);min-height:64px}
+.item:first-child{border-top:0}
+.item:active{background:var(--bg)}
+.thumb{flex:none;width:44px;height:44px;border-radius:10px;background:var(--bg);display:grid;place-items:center;color:var(--muted);font-size:18px;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.mid{flex:1;min-width:0}
+.desc{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{flex:none;font-size:12px;font-weight:600;padding:4px 8px;border-radius:8px;background:var(--bg);color:var(--muted);white-space:nowrap}
+.tag.soon{background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn)}
+.tag.ok{background:var(--accent-soft);color:var(--accent)}
+.fab{position:fixed;right:max(18px,calc(50% - 262px));bottom:calc(env(safe-area-inset-bottom) + 22px);width:62px;height:62px;border-radius:20px;background:var(--accent);color:var(--accent-ink);font-size:34px;font-weight:300;box-shadow:0 8px 24px rgba(0,0,0,.22);display:grid;place-items:center;z-index:5}
+.fab:active{transform:scale(.96)}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:10}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;background:var(--card);border-radius:22px 22px 0 0;z-index:11;padding:10px 18px calc(env(safe-area-inset-bottom) + 18px);max-height:92vh;overflow-y:auto;box-shadow:0 -8px 30px rgba(0,0,0,.2);animation:up .18s ease-out}
+@keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
+.sheet h2{font-size:19px;margin:0 0 4px}
+.sheet .lede{color:var(--muted);font-size:14px;margin:0 0 12px}
+.field{display:block;margin:12px 0}
+.field span{display:block;font-size:13px;color:var(--muted);margin-bottom:5px;font-weight:600}
+.field input,.field select{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:17px;outline:none;-webkit-appearance:none;appearance:none;min-height:50px}
+.field textarea{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:16px;outline:none;min-height:80px;resize:vertical}
+.field input:focus,.field textarea:focus{border-color:var(--accent)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two .field{margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chips button{padding:7px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--line);font-size:14px}
+.typeseg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.typeseg button{padding:10px 0;border-radius:12px;background:var(--bg);font-weight:600;font-size:14px;border:2px solid transparent}
+.typeseg button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.btns{display:flex;gap:10px;margin-top:18px}
+.btn{flex:1;padding:15px;border-radius:14px;font-weight:700;font-size:17px;background:var(--bg);text-align:center}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--warn)}
+.btn.danger.armed{background:var(--warn);color:#fff}
+.btn.small{padding:11px;font-size:14px}
+.btn:disabled{opacity:.5}
+.hint{font-size:13px;color:var(--muted);margin-top:8px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 96px);background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:12px;font-size:14px;font-weight:600;z-index:20;max-width:90vw;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.empty{padding:26px 22px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--ink);margin-bottom:4px}
+.note{margin:10px 0 0;padding:10px 12px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:13px;color:var(--muted)}
+.photo{width:100%;aspect-ratio:4/3;border-radius:14px;background:var(--bg);display:grid;place-items:center;color:var(--muted);overflow:hidden;margin:8px 0 4px;font-size:14px}
+.photo img{width:100%;height:100%;object-fit:contain;display:block}
+.rows{margin:10px 0 0}
+.row{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-top:1px solid var(--line);font-size:15px}
+.row:first-child{border-top:0}
+.row span{color:var(--muted);flex:none}
+.row b{font-weight:600;text-align:right;min-width:0;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text}
+.notes{white-space:pre-wrap;font-size:15px;padding:10px 0;border-top:1px solid var(--line)}
+.picked{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:14px;color:var(--muted)}
+.picked img{width:56px;height:56px;border-radius:10px;object-fit:cover}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toprow">
+    <h1>Home Inventory</h1>
+    <button class="icon" id="btnSettings" aria-label="Settings">⚙︎</button>
+  </div>
+  <div class="stats" id="stats"></div>
+  <input class="search" id="q" type="search" placeholder="Search items, brands, models, serials" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Search">
+  <div class="seg" id="seg" role="tablist">
+    <button data-group="room" class="on">By room</button>
+    <button data-group="category">By category</button>
+    <button data-group="warranty">Warranty</button>
+  </div>
+  <div id="note" class="note" hidden></div>
+  <div id="list"></div>
+</div>
+<button class="fab" id="fab" aria-label="Add item">+</button>
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" hidden></div>
+<div class="toast" id="toast" hidden></div>
+<input type="file" id="filePhoto" accept="image/*" hidden>
+<input type="file" id="fileDoc" accept="image/*,application/pdf" hidden>
+
+<script>
+"use strict";
+/* ---------- basics ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const lsGet = k => { try { return localStorage.getItem(k); } catch(e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch(e) {} };
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1dM1txX6MBDeV--YXS2MX2_hU5LcUOpJMc1DfGn9pkvM/edit";
+const CATS = ["Appliance", "Electronics", "Other"];
+
+// Link + key for the Apps Script attached to your Home Inventory sheet (saved on each device in Settings)
+const CFG = { url: lsGet("hi_api") || "", key: lsGet("hi_key") || "" };
+const S = { items: [], group: "room", q: "", filter: "", loaded: false, synced: 0, err: null, busy: false };
+try { const c = JSON.parse(lsGet("hi_cache") || "null"); if (c && Array.isArray(c.items)) { S.items = c.items; S.synced = c.at || 0; S.loaded = true; } } catch(e) {}
+
+let toastTimer;
+function toast(msg, ms = 2600){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); if (ms) toastTimer = setTimeout(() => t.hidden = true, ms); }
+
+/* ---------- talking to the sheet ---------- */
+async function api(action, body = {}, timeout = 30000){
+  if (!CFG.url || !CFG.key) throw {code:"not_setup", message:"Add your Apps Script link and key in Settings."};
+  if (!navigator.onLine) throw {code:"offline", message:"No signal."};
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), timeout);
+  let res;
+  try {
+    // text/plain keeps the browser from sending a pre-check request that Apps Script can't answer
+    res = await fetch(CFG.url, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: JSON.stringify(Object.assign({key: CFG.key, action}, body)), signal: ctl.signal, redirect:"follow"});
+  } catch(e) { throw {code:"offline", message: navigator.onLine ? "Couldn't reach your Apps Script." : "No signal."}; }
+  finally { clearTimeout(tm); }
+  let j = null; try { j = await res.json(); } catch(e) {}
+  if (!j) throw {code:"bad_response", message:"The Apps Script link didn't answer as expected. It should be the Web app URL ending in /exec, with access set to Anyone."};
+  if (!j.ok) throw {code: j.error === "Wrong key" ? "wrong_key" : "error", message: j.error === "Wrong key" ? "The key in Settings doesn't match the KEY in your Apps Script." : (j.error || "Something went wrong.")};
+  return j;
+}
+function saveCache(){ S.synced = Date.now(); lsSet("hi_cache", JSON.stringify({items: S.items, at: S.synced})); }
+async function load(quiet){
+  if (!CFG.url || !CFG.key) { S.err = {code:"not_setup"}; render(); return; }
+  try {
+    const j = await api("list");
+    S.items = j.items || []; S.loaded = true; S.err = null; saveCache();
+  } catch(e) { S.err = e; if (!quiet && e.code !== "offline") toast(e.message, 4000); }
+  render();
+}
+
+/* ---------- photos (kept private in your Drive, fetched through the script, saved on this device) ---------- */
+const fileIdOf = url => { const m = String(url || "").match(/\/d\/([\w-]{20,})|[?&]id=([\w-]{20,})/); return m ? (m[1] || m[2]) : ""; };
+const photoMem = new Map();      // fileId -> object URL
+const photoWait = new Map();     // fileId -> promise
+let photoActive = 0; const photoQueue = [];
+function b64ToBlob(b64, type){ const bin = atob(b64), a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new Blob([a], {type}); }
+async function photoCache(){ try { return await caches.open("homeinv-photos"); } catch(e) { return null; } }
+function rememberPhoto(id, blob){
+  photoMem.set(id, URL.createObjectURL(blob));
+  photoCache().then(c => c && c.put("photo/" + id, new Response(blob, {headers: {"Content-Type": blob.type || "image/jpeg"}}))).catch(() => {});
+}
+function getPhoto(id){
+  if (!id) return Promise.resolve("");
+  if (photoMem.has(id)) return Promise.resolve(photoMem.get(id));
+  if (photoWait.has(id)) return photoWait.get(id);
+  const p = (async () => {
+    const c = await photoCache();
+    const hit = c && await c.match("photo/" + id);
+    if (hit) { const u = URL.createObjectURL(await hit.blob()); photoMem.set(id, u); return u; }
+    await new Promise(go => { photoQueue.push(go); pump(); });      // at most 2 downloads at a time
+    try {
+      const j = await api("getPhoto", {fileId: id}, 60000);
+      rememberPhoto(id, b64ToBlob(j.data, j.mimeType));
+      return photoMem.get(id);
+    } finally { photoActive--; pump(); }
+  })().catch(() => "").finally(() => photoWait.delete(id));
+  photoWait.set(id, p); return p;
+}
+function pump(){ while (photoActive < 2 && photoQueue.length) { photoActive++; photoQueue.shift()(); } }
+const seen = "IntersectionObserver" in window ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { seen.unobserve(e.target); fillPhoto(e.target); } }), {rootMargin: "200px"}) : null;
+function fillPhoto(el){
+  const id = el.dataset.photo; if (!id) return;
+  getPhoto(id).then(u => { if (u && el.isConnected) el.innerHTML = `<img alt="" src="${u}">`; else if (el.isConnected && el.classList.contains("photo")) el.textContent = navigator.onLine ? "Couldn't load the photo" : "Photo isn't saved on this device yet"; });
+}
+function watchPhotos(root){ root.querySelectorAll("[data-photo]").forEach(el => { if (el.classList.contains("photo") || !seen) fillPhoto(el); else seen.observe(el); }); }
+
+// Shrinks a camera photo before upload so it's quick on cell signal (longest side 1600px)
+function shrink(file, max = 1600){
+  return new Promise((ok, no) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      c.toBlob(b => b ? ok(b) : no(new Error("Couldn't read that photo")), "image/jpeg", 0.82);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); no(new Error("Couldn't read that photo")); };
+    img.src = url;
+  });
+}
+const toB64 = blob => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = () => no(new Error("Couldn't read that file")); r.readAsDataURL(blob); });
+async function upload(id, kind, file){
+  let blob = file, type = file.type || "application/octet-stream";
+  if (/^image\//.test(type)) { blob = await shrink(file); type = "image/jpeg"; }
+  else if (file.size > 15 * 1024 * 1024) throw {message: "That file is over 15 MB. Try a smaller PDF or a photo."};
+  const j = await api("upload", {id, kind, mimeType: type, name: type === "image/jpeg" ? "x.jpg" : file.name, data: await toB64(blob)}, 120000);
+  if (kind === "photo" && j.fileId) rememberPhoto(j.fileId, blob);
+  const it = S.items.find(x => x.id === id); if (it) { it[j.field] = j.url; saveCache(); }
+  return j;
+}
+
+/* ---------- dates, money, warranty ---------- */
+const money = n => n === "" || n == null || isNaN(n) ? "" : Number(n).toLocaleString("en-US", {style:"currency", currency:"USD"});
+function dateOf(s){ const p = String(s || "").split("-"); return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : null; }
+const niceDate = s => { const d = dateOf(s); return d ? d.toLocaleDateString("en-US", {month:"short", day:"numeric", year:"numeric"}) : ""; };
+function daysLeft(s){ const d = dateOf(s); if (!d) return null; const t = new Date(); t.setHours(0,0,0,0); return Math.round((d - t) / 86400000); }
+function warranty(it){
+  const n = daysLeft(it.warrantyExpires);
+  if (n == null) return null;
+  if (n < 0) return {cls: "", text: "Expired", n};
+  if (n <= 90) return {cls: "soon", text: n === 0 ? "Ends today" : n + "d left", n};
+  return {cls: "ok", text: "Thru " + dateOf(it.warrantyExpires).toLocaleDateString("en-US", {month:"short", year:"numeric"}), n};
+}
+
+/* ---------- render ---------- */
+function visible(){
+  const q = S.q.trim().toLowerCase();
+  return S.items.filter(it => {
+    if (S.filter === "soon") { const w = warranty(it); if (!w || w.n < 0 || w.n > 90) return false; }
+    if (!q) return true;
+    return [it.item, it.brand, it.model, it.serial, it.room, it.category, it.retailer, it.notes].some(v => String(v || "").toLowerCase().includes(q));
+  });
+}
+function render(){
+  const all = S.items, total = all.reduce((s, it) => s + (Number(it.price) || 0), 0);
+  const soon = all.filter(it => { const w = warranty(it); return w && w.n >= 0 && w.n <= 90; }).length;
+  $("#stats").innerHTML = `
+    <div class="card stat"><small>Items</small><b>${all.length}</b></div>
+    <div class="card stat"><small>Total paid</small><b>${total ? "$" + Math.round(total).toLocaleString("en-US") : "–"}</b></div>
+    <button class="card stat ${soon ? "alert" : ""} ${S.filter === "soon" ? "on" : ""}" id="statSoon"><small>Warranty ending</small><b>${soon}</b></button>`;
+  document.querySelectorAll("#seg button").forEach(b => b.classList.toggle("on", b.dataset.group === S.group));
+
+  const note = $("#note"); let msg = "";
+  if (S.err && S.err.code === "not_setup") msg = "";
+  else if (S.err && S.err.code === "offline" && S.loaded) msg = (navigator.onLine ? "Couldn't reach your sheet." : "No signal.") + " Showing what was saved on this device" + (S.synced ? " " + ago(S.synced) : "") + ". Adding and editing need a connection.";
+  else if (S.err && S.loaded) msg = esc(S.err.message) + " Showing the last saved copy.";
+  if (S.filter === "soon") msg = (msg ? msg + " " : "") + "Showing warranties ending in the next 90 days. Tap the box again to clear.";
+  note.hidden = !msg; note.textContent = msg;
+
+  const list = $("#list");
+  if (S.err && S.err.code === "not_setup") { list.innerHTML = `<div class="card empty" style="margin-top:14px"><b>Connect your sheet</b>Tap ⚙︎ and add your Apps Script web app link and key.<div class="btns"><button class="btn primary" id="btnSetup">Open Settings</button></div></div>`; return; }
+  if (!S.loaded) { list.innerHTML = `<div class="card empty" style="margin-top:14px">${S.err ? `<b>Couldn't load your inventory</b>${esc(S.err.message)}<div class="btns"><button class="btn" id="btnRetry">Try again</button></div>` : "Loading…"}</div>`; return; }
+  const items = visible();
+  if (!all.length) { list.innerHTML = `<div class="card empty" style="margin-top:14px"><b>Nothing here yet</b>Tap + to add your first appliance or device.</div>`; return; }
+  if (!items.length) { list.innerHTML = `<div class="card empty" style="margin-top:14px">No items match.</div>`; return; }
+
+  let groups;
+  if (S.group === "warranty") {
+    const order = ["Ending within 90 days", "Covered", "Expired", "No warranty date"], m = new Map(order.map(k => [k, []]));
+    items.forEach(it => { const w = warranty(it); m.get(!w ? order[3] : w.n < 0 ? order[2] : w.n <= 90 ? order[0] : order[1]).push(it); });
+    m.forEach(a => a.sort((x, y) => String(x.warrantyExpires || "").localeCompare(String(y.warrantyExpires || "")) || String(x.item).localeCompare(String(y.item))));
+    groups = [...m].filter(g => g[1].length);
+  } else {
+    const m = new Map();
+    items.forEach(it => { const k = String(it[S.group] || "").trim() || (S.group === "room" ? "No room" : "No category"); if (!m.has(k)) m.set(k, []); m.get(k).push(it); });
+    groups = [...m].sort((a, b) => /^No /.test(a[0]) - /^No /.test(b[0]) || a[0].localeCompare(b[0]));
+    groups.forEach(g => g[1].sort((x, y) => String(x.item).localeCompare(String(y.item))));
+  }
+  list.innerHTML = groups.map(([name, arr]) => `
+    <div class="day">${esc(name)}<span>${arr.length}</span></div>
+    <div class="card group">${arr.map(row).join("")}</div>`).join("");
+  watchPhotos(list);
+}
+function row(it){
+  const w = warranty(it), pid = fileIdOf(it.photo);
+  const sub = [it.brand, it.model].filter(Boolean).join(" ") || (S.group === "room" ? it.category : it.room) || "";
+  return `<button class="item" data-id="${esc(it.id)}">
+    <span class="thumb" ${pid ? `data-photo="${esc(pid)}"` : ""}>${esc(String(it.item || "?").trim().charAt(0).toUpperCase())}</span>
+    <span class="mid"><span class="desc">${esc(it.item)}</span><span class="sub">${esc(sub)}</span></span>
+    ${w ? `<span class="tag ${w.cls}">${esc(w.text)}</span>` : ""}
+  </button>`;
+}
+function ago(t){ const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "just now" : m < 60 ? m + " min ago" : m < 1440 ? Math.round(m / 60) + " hr ago" : Math.round(m / 1440) + " d ago"; }
+
+/* ---------- sheets (bottom panels) ---------- */
+function openSheet(html){ const s = $("#sheet"); s.innerHTML = `<div class="grab"></div>` + html; s.hidden = false; $("#scrim").hidden = false; s.scrollTop = 0; }
+function closeSheet(){ const sh = $("#sheet"); sh.hidden = true; sh.style.bottom = ""; sh.style.maxHeight = ""; $("#scrim").hidden = true; pending = null; }
+function fitSheetToKeyboard(){
+  const sh = $("#sheet"); if (sh.hidden || !window.visualViewport || window.innerWidth >= 900) return;
+  const vv = window.visualViewport, kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+  sh.style.bottom = kb ? kb + "px" : ""; sh.style.maxHeight = kb ? (vv.height - 12) + "px" : "";
+}
+if (window.visualViewport) { visualViewport.addEventListener("resize", fitSheetToKeyboard); visualViewport.addEventListener("scroll", fitSheetToKeyboard); }
+document.addEventListener("focusin", e => { if (e.target.closest && e.target.closest("#sheet") && /INPUT|TEXTAREA/.test(e.target.tagName)) setTimeout(() => e.target.scrollIntoView({block:"center", behavior:"smooth"}), 250); });
+
+function detailSheet(id){
+  const it = S.items.find(x => x.id === id); if (!it) return;
+  const pid = fileIdOf(it.photo), w = warranty(it);
+  const r = (k, v) => v === "" || v == null ? "" : `<div class="row"><span>${k}</span><b>${v}</b></div>`;
+  const link = (url, label) => /^https?:\/\//i.test(url || "") ? `<a href="${esc(url)}" target="_blank" rel="noopener">${label}</a>` : esc(url);
+  openSheet(`<h2>${esc(it.item)}</h2>
+    <p class="lede">${esc([it.room, it.category].filter(Boolean).join(" · "))}</p>
+    ${pid ? `<div class="photo" data-photo="${esc(pid)}">Loading photo…</div>` : ""}
+    <div class="rows">
+      ${r("Brand", esc(it.brand))}${r("Model", esc(it.model))}${r("Serial", esc(it.serial))}
+      ${r("Purchased", esc([niceDate(it.purchaseDate), it.retailer].filter(Boolean).join(" · ")))}
+      ${r("Price", esc(money(it.price)))}
+      ${r("Warranty", it.warrantyExpires ? esc(niceDate(it.warrantyExpires)) + (w ? ` <span class="tag ${w.cls}">${esc(w.n < 0 ? "Expired" : w.n + "d left")}</span>` : "") : "")}
+      ${r("Manual", it.manualLink ? link(it.manualLink, "Open manual") : "")}
+      ${r("Receipt", it.receiptLink ? link(it.receiptLink, "Open receipt") : "")}
+    </div>
+    ${it.notes ? `<div class="notes">${esc(it.notes)}</div>` : ""}
+    <div class="btns">
+      <button class="btn small" data-up="photo" data-id="${esc(it.id)}">${pid ? "Replace photo" : "Add photo"}</button>
+      <button class="btn small" data-up="receipt" data-id="${esc(it.id)}">${it.receiptLink ? "Replace receipt" : "Add receipt"}</button>
+      <button class="btn small" data-up="manual" data-id="${esc(it.id)}">${it.manualLink ? "Replace manual" : "Add manual"}</button>
+    </div>
+    <div class="btns"><button class="btn" data-close>Close</button><button class="btn primary" data-edit="${esc(it.id)}">Edit</button></div>`);
+  watchPhotos($("#sheet"));
+}
+
+let pending = null;   // photo picked in the add form, uploaded after the item is saved
+function formSheet(id){
+  const it = id ? S.items.find(x => x.id === id) : null, v = k => esc(it ? it[k] : "");
+  const rooms = [...new Set(S.items.map(x => String(x.room || "").trim()).filter(Boolean))].sort();
+  const cat = it ? String(it.category || "") : "Appliance";
+  const cats = CATS.includes(cat) || !cat ? CATS : CATS.slice(0, 2).concat(cat);
+  pending = null;
+  openSheet(`<h2>${it ? "Edit item" : "Add item"}</h2>
+    <form id="itemForm" autocomplete="off" data-id="${esc(id || "")}">
+      <label class="field"><span>Item</span><input id="fItem" value="${v("item")}" placeholder="Refrigerator" required></label>
+      <div class="field"><span>Category</span><div class="typeseg" id="fCat">${cats.map(c => `<button type="button" data-cat="${esc(c)}" class="${c === cat ? "on" : ""}">${esc(c)}</button>`).join("")}</div></div>
+      <label class="field"><span>Room</span><input id="fRoom" value="${v("room")}" placeholder="Kitchen">
+        ${rooms.length ? `<div class="chips">${rooms.map(x => `<button type="button" data-room="${esc(x)}">${esc(x)}</button>`).join("")}</div>` : ""}</label>
+      <div class="two">
+        <label class="field"><span>Brand</span><input id="fBrand" value="${v("brand")}"></label>
+        <label class="field"><span>Model</span><input id="fModel" value="${v("model")}" autocapitalize="characters" autocorrect="off" spellcheck="false"></label>
+      </div>
+      <label class="field"><span>Serial</span><input id="fSerial" value="${v("serial")}" autocapitalize="characters" autocorrect="off" spellcheck="false"></label>
+      <div class="two">
+        <label class="field"><span>Purchase date</span><input id="fBought" type="date" value="${v("purchaseDate")}"></label>
+        <label class="field"><span>Price</span><input id="fPrice" inputmode="decimal" value="${it && it.price !== "" ? esc(it.price) : ""}" placeholder="0.00"></label>
+      </div>
+      <div class="two" style="margin-top:12px">
+        <label class="field"><span>Retailer</span><input id="fRetailer" value="${v("retailer")}"></label>
+        <label class="field"><span>Warranty expires</span><input id="fWarranty" type="date" value="${v("warrantyExpires")}"></label>
+      </div>
+      <label class="field"><span>Manual link (optional)</span><input id="fManual" value="${v("manualLink")}" placeholder="https://…" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+      <label class="field"><span>Notes</span><textarea id="fNotes" placeholder="Filter size, maintenance, accounts…">${v("notes")}</textarea></label>
+      ${it ? "" : `<button type="button" class="btn small" id="btnPick" style="width:100%">Take or choose a photo</button><div class="picked" id="picked" hidden></div>`}
+      <div class="btns">
+        ${it ? `<button type="button" class="btn danger" id="btnDel" data-id="${esc(it.id)}">Delete</button>` : `<button type="button" class="btn" data-close>Cancel</button>`}
+        <button class="btn primary" type="submit">Save</button>
+      </div>
+      ${it ? `<p class="hint">Delete removes the row from your sheet. Its photos stay in your Drive folder.</p>` : ""}
+    </form>`);
+}
+function settingsSheet(){
+  openSheet(`<h2>Settings</h2>
+    <form id="setForm" autocomplete="off">
+      <label class="field"><span>Apps Script web app link</span><input id="fApi" value="${esc(CFG.url)}" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+      <label class="field"><span>Key</span><input id="fKey" type="password" value="${esc(CFG.key)}" placeholder="The KEY from your Apps Script" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+      <p class="hint">The link and key are saved only on this device. Enter them once on your iPhone and once on your iPad.</p>
+      <p class="hint"><a href="${SHEET_URL}" target="_blank" rel="noopener">Open the sheet in Google Sheets</a>${S.synced ? " · Last synced " + ago(S.synced) : ""}</p>
+      <button type="button" class="btn" id="btnRefresh" style="width:100%;margin-top:6px">Refresh from sheet now</button>
+      <div class="btns"><button type="button" class="btn" data-close>Close</button><button class="btn primary" type="submit">Save</button></div>
+    </form>`);
+}
+
+/* ---------- events ---------- */
+let upTarget = null;
+document.addEventListener("click", async e => {
+  const t = e.target.closest("button, [data-close]"); if (!t) return;
+  if (t.matches("[data-close]")) return closeSheet();
+  if (t.id === "btnSettings" || t.id === "btnSetup") return settingsSheet();
+  if (t.id === "fab") return formSheet("");
+  if (t.id === "btnRetry") { S.err = null; render(); return load(); }
+  if (t.id === "statSoon") { S.filter = S.filter === "soon" ? "" : "soon"; if (S.filter) S.group = "warranty"; return render(); }
+  if (t.dataset.group) { S.group = t.dataset.group; return render(); }
+  if (t.classList.contains("item")) return detailSheet(t.dataset.id);
+  if (t.dataset.edit) return formSheet(t.dataset.edit);
+  if (t.dataset.cat) { t.parentNode.querySelectorAll("button").forEach(b => b.classList.toggle("on", b === t)); return; }
+  if (t.dataset.room) { $("#fRoom").value = t.dataset.room; return; }
+  if (t.id === "btnPick") { upTarget = {form: true}; return $("#filePhoto").click(); }
+  if (t.dataset.up) { upTarget = {id: t.dataset.id, kind: t.dataset.up}; return $(t.dataset.up === "photo" ? "#filePhoto" : "#fileDoc").click(); }
+  if (t.id === "btnRefresh") { t.disabled = true; t.textContent = "Refreshing…"; await load(); closeSheet(); if (!S.err) toast("Up to date"); return; }
+  if (t.id === "btnDel") {
+    if (!t.classList.contains("armed")) { t.classList.add("armed"); t.textContent = "Tap again to delete"; setTimeout(() => { if (t.isConnected) { t.classList.remove("armed"); t.textContent = "Delete"; } }, 4000); return; }
+    t.disabled = true;
+    try { await api("remove", {id: t.dataset.id}); S.items = S.items.filter(x => x.id !== t.dataset.id); saveCache(); closeSheet(); render(); toast("Deleted"); }
+    catch(err) { t.disabled = false; toast(err.message, 4000); }
+  }
+});
+$("#scrim").addEventListener("click", closeSheet);
+$("#q").addEventListener("input", e => { S.q = e.target.value; render(); });
+
+async function onFile(e){
+  const f = e.target.files[0]; e.target.value = ""; const tgt = upTarget; upTarget = null;
+  if (!f || !tgt) return;
+  if (tgt.form) {       // adding a new item: hold the photo until the item is saved
+    pending = f; const p = $("#picked"); if (p) { p.hidden = false; p.innerHTML = `<img alt="" src="${URL.createObjectURL(f)}"><span>Photo will upload when you save.</span>`; }
+    return;
+  }
+  toast("Uploading…", 0);
+  try { await upload(tgt.id, tgt.kind, f); toast(tgt.kind === "photo" ? "Photo saved" : tgt.kind === "receipt" ? "Receipt saved" : "Manual saved"); render(); if (!$("#sheet").hidden) detailSheet(tgt.id); }
+  catch(err) { toast(err.message || "Upload failed", 4500); }
+}
+$("#filePhoto").addEventListener("change", onFile);
+$("#fileDoc").addEventListener("change", onFile);
+
+document.addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target, btn = f.querySelector("[type=submit]");
+  if (f.id === "setForm") {
+    CFG.url = $("#fApi").value.trim(); CFG.key = $("#fKey").value.trim();
+    lsSet("hi_api", CFG.url); lsSet("hi_key", CFG.key);
+    btn.disabled = true; btn.textContent = "Checking…";
+    try { await api("ping"); closeSheet(); toast("Connected"); S.err = null; await load(); }
+    catch(err) { btn.disabled = false; btn.textContent = "Save"; toast(err.message, 5000); S.err = err; render(); }
+    return;
+  }
+  if (f.id === "itemForm") {
+    if (S.busy) return;
+    const on = f.querySelector("#fCat .on"), id = f.dataset.id;
+    const item = { item: $("#fItem").value.trim(), category: on ? on.dataset.cat : "", room: $("#fRoom").value.trim(), brand: $("#fBrand").value.trim(),
+      model: $("#fModel").value.trim(), serial: $("#fSerial").value.trim(), purchaseDate: $("#fBought").value, price: $("#fPrice").value.trim(),
+      retailer: $("#fRetailer").value.trim(), warrantyExpires: $("#fWarranty").value, manualLink: $("#fManual").value.trim(), notes: $("#fNotes").value.trim() };
+    if (!item.item) return toast("Give the item a name");
+    if (item.price && isNaN(Number(item.price.replace(/[$,\s]/g, "")))) return toast("Price should be a number");
+    S.busy = true; btn.disabled = true; btn.textContent = "Saving…";
+    const photo = pending;
+    try {
+      const j = id ? await api("update", {id, item}) : await api("add", {item});
+      const i = S.items.findIndex(x => x.id === j.item.id);
+      if (i >= 0) S.items[i] = j.item; else S.items.push(j.item);
+      saveCache(); closeSheet(); render(); toast(id ? "Saved" : "Added");
+      if (!id && photo) {
+        toast("Uploading photo…", 0);
+        try { await upload(j.item.id, "photo", photo); toast("Photo saved"); render(); }
+        catch(err) { toast("Item saved, but the photo didn't upload. Open the item and tap Add photo.", 6000); }
+      }
+    } catch(err) { btn.disabled = false; btn.textContent = "Save"; toast(err.message, 4500); }
+    finally { S.busy = false; }
+  }
+});
+
+/* ---------- boot ---------- */
+render();
+load(true);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && $("#sheet").hidden && Date.now() - S.synced > 60000) load(true); });
+window.addEventListener("online", () => load(true));
+if ("serviceWorker" in navigator) {
+  const had = !!navigator.serviceWorker.controller;
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js", {updateViaCache: "none"}).catch(() => {}));
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (had && $("#sheet").hidden) location.reload(); });
+}
+</script>
+</body>
+</html>
